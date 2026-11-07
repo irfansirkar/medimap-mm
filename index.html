@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MediMap MM · Live demo</title>
+<meta name="description" content="MediMap MM demo: multimodal emergency triage that combines symptom notes with X-ray and CT images.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2300B3A4'/%3E%3Ctext x='16' y='22' font-family='Arial' font-weight='900' font-size='13' fill='white' text-anchor='middle'%3EM²%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{--bg:#EEF8F7;--card:#fff;--ink:#0D2624;--muted:#4E6866;--line:#D3E8E5;--acc:#00B3A4;--deep:#007A70;--soft:#DDF5F2;--red:#D23C3C;--amber:#D98200;--green:#1F9D55;
+  --f-head:"Montserrat",system-ui,sans-serif;--f-body:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body)}
+a{color:inherit}
+.demo-bar{background:var(--ink);color:#fff;font:600 12px var(--f-mono);letter-spacing:.05em;padding:8px max(16px,4vw);display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.demo-bar a{opacity:.8}
+.wrap{max-width:1100px;margin:0 auto;padding:28px max(16px,4vw) 60px;display:grid;gap:22px}
+h1{font:900 clamp(34px,6vw,60px)/1 var(--f-head);margin:0;letter-spacing:-.02em}
+h1 span{color:var(--acc)}
+.sub{max-width:64ch;color:var(--muted);margin:10px 0 0}
+.lbl{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cases{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.cases{grid-template-columns:1fr}}
+.case{text-align:left;border:2px solid var(--line);background:var(--card);border-radius:16px;padding:12px 14px;cursor:pointer;font:inherit;color:var(--ink);display:grid;gap:2px}
+.case b{font:800 15px var(--f-head)}
+.case span{font-size:13px;color:var(--muted)}
+.case[aria-pressed="true"]{border-color:var(--acc);box-shadow:4px 4px 0 var(--acc)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:2px solid var(--ink);border-radius:20px;padding:18px;min-width:0;display:grid;gap:12px;align-content:start}
+.scan{background:#000;border-radius:14px;overflow:hidden;position:relative}
+.scan canvas{display:block;width:100%;height:auto}
+.toggle{display:flex;gap:8px;align-items:center;font-size:14px}
+.vitals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:480px){.vitals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.vit{background:var(--soft);border-radius:10px;padding:8px}
+.vit b{display:block;font:800 18px var(--f-head);font-variant-numeric:tabular-nums}
+.vit.bad b{color:var(--red)}
+.notetxt{background:var(--soft);border-radius:12px;padding:12px;font-size:15px}
+.tri{display:flex;align-items:center;gap:14px;border-radius:16px;padding:14px;color:#fff}
+.tri b{font:900 26px var(--f-head);letter-spacing:.02em}
+.tri small{display:block;opacity:.9}
+.find{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.find li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--soft);border-radius:10px;padding:8px 10px;font-size:15px}
+.find .src{font:600 10px var(--f-mono);background:var(--ink);color:#fff;border-radius:6px;padding:2px 6px}
+.find .p{font:600 13px var(--f-mono);color:var(--deep)}
+.chat{display:grid;gap:8px}
+.bub{padding:9px 12px;border-radius:12px;max-width:90%;font-size:15px}
+.bub.u{background:var(--ink);color:#fff;justify-self:end}
+.bub.a{background:var(--soft)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:99px;padding:6px 12px;font:600 13px var(--f-body);cursor:pointer;color:var(--ink)}
+.chip:hover{border-color:var(--acc)}
+.disc{font-size:13px;color:var(--muted);border-left:3px solid var(--amber);padding-left:10px}
+.thinking{font:600 13px var(--f-mono);color:var(--deep)}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.how div{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:14px}
+.how b{font:800 15px var(--f-head)}
+footer{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="demo-bar"><span>DEMO · ILLUSTRATED SCANS · NOT A DIAGNOSIS</span><span><a href="https://github.com/irfansirkar/medimap-mm">Code ↗</a> · <a href="https://irfansirkar.github.io/PERSONAL-PORFOLIO-WEBSITE/">Irfan's portfolio ↗</a></span></div>
+<main class="wrap">
+  <header>
+    <h1>MediMap <span>MM</span></h1>
+    <p class="sub">Multimodal emergency diagnostics by Mohammad Irfan Sirkar. It reads the patient's symptom note and their X-ray or CT together, suggests a triage level, and lets the doctor ask follow-up questions. Built for Expogenix 2025.</p>
+  </header>
+
+  <section>
+    <div class="lbl" style="margin-bottom:8px">Choose an emergency case</div>
+    <div class="cases" id="cases"></div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <div class="lbl" id="scanLbl">Image</div>
+      <div class="scan"><canvas id="cv" width="520" height="440" aria-label="Illustrated medical scan"></canvas></div>
+      <label class="toggle"><input type="checkbox" id="ov" checked> Show the region the model flagged</label>
+      <div class="lbl">Vitals</div>
+      <div class="vitals" id="vitals"></div>
+      <div class="lbl">Triage note</div>
+      <div class="notetxt" id="note"></div>
+    </div>
+    <div class="card" aria-live="polite">
+      <div class="lbl">Model output · text + image</div>
+      <div id="out"></div>
+      <div class="lbl">Ask a follow-up</div>
+      <div class="chat" id="chat"></div>
+      <div class="chips" id="chips"></div>
+      <div class="disc">Scans are drawn illustrations and the outputs are saved samples. This demo is for showing the project only and is not a diagnosis.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="lbl" style="margin-bottom:10px">How the real system works</div>
+    <div class="how">
+      <div><b>1. Two inputs</b><br>A free-text symptom note plus a chest X-ray or CT image from the emergency room.</div>
+      <div><b>2. One model</b><br>BiMediX2, a medical vision-language model, reads both together with PyTorch and Transformers on CUDA.</div>
+      <div><b>3. Triage</b><br>It returns findings, each tagged with whether it came from the text or the image, plus an urgency level.</div>
+      <div><b>4. Chat</b><br>Doctors ask follow-up questions in the same session, and the model keeps the case in context.</div>
+    </div>
+  </section>
+  <footer>Built by Mohammad Irfan Sirkar · Hyderabad · <a href="https://github.com/irfansirkar">github.com/irfansirkar</a></footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const C=[
+ {t:'Chest pain + fever',s:'54 y/o · chest X-ray',kind:'cxr',flag:{x:.33,y:.66,r:.11},
+  v:[['Temp','39.1°C',1],['SpO₂','92%',1],['HR','108',1],['BP','128/82',0]],
+  n:'Cough with yellow sputum for 4 days, fever, pain on the right side when breathing in.',
+  tri:['URGENT','var(--amber)','See within 30 minutes'],
+  f:[['IMG','Right lower-lobe opacity','0.89'],['TEXT','Fever + productive cough','0.93'],['BOTH','Pattern fits community-acquired pneumonia','0.86']],
+  q:[['Should we order a CT?','Not first. The X-ray and symptoms already fit pneumonia. A CT is useful if there is no improvement in 48–72 hours or an abscess or effusion is suspected.'],['What tests next?','Blood count, CRP, blood cultures and a sputum culture. Check oxygen often because SpO₂ is 92%.']]},
+ {t:'Sudden weakness',s:'67 y/o · head CT',kind:'ct',flag:{x:.38,y:.46,r:.13},
+  v:[['Temp','36.8°C',0],['SpO₂','97%',0],['HR','88',0],['BP','176/98',1]],
+  n:'Left arm and face weakness, slurred speech. Started 70 minutes ago.',
+  tri:['CRITICAL','var(--red)','Stroke protocol now'],
+  f:[['TEXT','Sudden one-sided weakness + speech change','0.95'],['IMG','Low-density area in the right MCA territory','0.81'],['IMG','No bleed seen','0.90']],
+  q:[['Is this a bleed?','The illustrated CT shows no bright (hyperdense) area, so no bleed is seen. That points to an ischemic stroke, but a radiologist must confirm.'],['What is the time window?','Symptoms began 70 minutes ago, which is inside the usual window for clot-busting treatment. Activate the stroke team now.']]},
+ {t:'Breathless after a fall',s:'23 y/o · chest X-ray',kind:'ptx',flag:{x:.73,y:.42,r:.15},
+  v:[['Temp','36.9°C',0],['SpO₂','90%',1],['HR','118',1],['BP','110/70',0]],
+  n:'Fell from a bike. Sharp left chest pain and shortness of breath that is getting worse.',
+  tri:['CRITICAL','var(--red)','Treat immediately'],
+  f:[['IMG','Left lung edge pulled away from the chest wall','0.88'],['TEXT','Chest injury + worsening breathlessness','0.91'],['BOTH','Pattern fits a left pneumothorax','0.87']],
+  q:[['Is it a tension pneumothorax?','Watch for low blood pressure, a shifted trachea and rising heart rate. BP is 110/70 now, but the trend matters. Prepare for needle decompression.'],['What about the ribs?','Check for rib fractures on a dedicated view. They are common with this kind of fall.']]}
+];
+let cur=0;
+const cv=$('cv'),x=cv.getContext('2d'),W=520,H=440;
+function draw(c){
+  x.fillStyle='#000';x.fillRect(0,0,W,H);x.save();
+  if(c.kind==='ct'){
+    x.fillStyle='#E8E8E8';x.beginPath();x.ellipse(W/2,H/2,170,200,0,0,6.28);x.fill();
+    x.fillStyle='#7A7A7A';x.beginPath();x.ellipse(W/2,H/2,152,182,0,0,6.28);x.fill();
+    x.fillStyle='#8D8D8D';for(let i=0;i<40;i++){x.beginPath();x.ellipse(W/2+(Math.sin(i*2.1)*120),H/2+Math.cos(i*1.7)*150,26,10,i,0,6.28);x.fill()}
+    x.fillStyle='#2E2E2E';x.beginPath();x.ellipse(W/2-24,H/2,10,50,.1,0,6.28);x.ellipse(W/2+24,H/2,10,50,-.1,0,6.28);x.fill();
+    x.fillStyle='rgba(40,40,40,.55)';x.beginPath();x.moveTo(W*.38,H*.46);x.arc(W*.38,H*.46,70,2.3,4.3);x.fill();
+  }else{
+    const g=x.createRadialGradient(W/2,H/2,40,W/2,H/2,300);g.addColorStop(0,'#3A3A3A');g.addColorStop(1,'#111');x.fillStyle=g;x.fillRect(0,0,W,H);
+    x.fillStyle='#0B0B0B';
+    x.beginPath();x.ellipse(W*.32,H*.52,82,150,.06,0,6.28);x.fill();
+    x.beginPath();x.ellipse(W*.68,H*.52,82,150,-.06,0,6.28);x.fill();
+    x.strokeStyle='rgba(220,220,220,.45)';x.lineWidth=7;
+    for(let i=0;i<8;i++){x.beginPath();x.ellipse(W/2,H*.2+i*38,200,40,0,.15,Math.PI-.15);x.stroke()}
+    x.fillStyle='#DADADA';x.beginPath();x.ellipse(W*.55,H*.66,70,64,0,0,6.28);x.fill();
+    x.fillStyle='#BDBDBD';x.fillRect(W/2-12,0,24,H);
+    if(c.kind==='cxr'){x.fillStyle='rgba(200,200,200,.5)';x.beginPath();x.ellipse(W*.33,H*.66,52,42,0,0,6.28);x.fill()}
+    if(c.kind==='ptx'){x.fillStyle='#000';x.beginPath();x.ellipse(W*.73,H*.48,62,130,-.06,0,6.28);x.fill();x.strokeStyle='rgba(230,230,230,.7)';x.lineWidth=2;x.beginPath();x.ellipse(W*.65,H*.53,48,104,-.06,0,6.28);x.stroke()}
+  }
+  x.restore();
+  if($('ov').checked){const f=c.flag;x.strokeStyle='#00E5D0';x.lineWidth=3;x.setLineDash([8,6]);x.beginPath();x.arc(f.x*W,f.y*H,f.r*W,0,6.28);x.stroke();x.setLineDash([]);x.fillStyle='#00E5D0';x.font='600 15px "IBM Plex Mono",monospace';x.fillText('flagged',f.x*W-30,f.y*H-f.r*W-8)}
+  x.fillStyle='#fff';x.font='600 13px "IBM Plex Mono",monospace';x.fillText(c.kind==='ct'?'CT HEAD · AXIAL':'CXR · PA VIEW',12,22);x.fillText('L',W-24,22);
+}
+function pick(i){
+  cur=i;const c=C[i];
+  [...$('cases').children].forEach((b,j)=>b.setAttribute('aria-pressed',j===i));
+  $('scanLbl').textContent=c.kind==='ct'?'Head CT':'Chest X-ray';draw(c);
+  $('vitals').innerHTML=c.v.map(([k,v,b])=>`<div class="vit ${b?'bad':''}"><span class="lbl">${k}</span><b>${v}</b></div>`).join('');
+  $('note').textContent=c.n;
+  $('out').innerHTML='<div class="thinking">● reading the note and the image together…</div>';
+  $('chat').innerHTML='';
+  $('chips').innerHTML=c.q.map(([q],j)=>`<button class="chip" data-j="${j}">${q}</button>`).join('');
+  setTimeout(()=>{if(cur!==i)return;
+    $('out').innerHTML=`<div class="tri" style="background:${c.tri[1]}"><b>${c.tri[0]}</b><small>${c.tri[2]}</small></div>
+    <ul class="find" style="margin-top:10px">${c.f.map(([s,t,p])=>`<li><span class="src">${s}</span><span>${t}</span><span class="p">${p}</span></li>`).join('')}</ul>`;
+  },900);
+}
+$('chips').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;const [q,a]=C[cur].q[+b.dataset.j];b.remove();
+  $('chat').insertAdjacentHTML('beforeend',`<div class="bub u">${q}</div>`);
+  setTimeout(()=>$('chat').insertAdjacentHTML('beforeend',`<div class="bub a">${a}</div>`),500)};
+$('ov').onchange=()=>draw(C[cur]);
+C.forEach((c,i)=>{const b=document.createElement('button');b.className='case';b.innerHTML=`<b>${c.t}</b><span>${c.s}</span>`;b.onclick=()=>pick(i);$('cases').appendChild(b)});
+pick(0);
+</script>
+</body>
+</html>
